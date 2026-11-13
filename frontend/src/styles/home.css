@@ -233,3 +233,23 @@
   mask: radial-gradient(circle 6px at 0 50%, #0000 97%, #000) left / 51% 100% no-repeat, radial-gradient(circle 6px at 100% 50%, #0000 97%, #000) right / 51% 100% no-repeat; }
 .game-cover button:active { transform: scale(.95, .9); }
 .game-cover small { font-size: 12px; color: var(--ink-soft); }
+
+/* ---------- the city ---------- */
+.city { display: block; width: 100%; height: auto; overflow: visible; }
+.city-base { fill: #fff; opacity: .35; stroke: var(--ink); stroke-width: 1.5; }
+.city-road { fill: none; stroke: var(--ink); stroke-width: 1.5; stroke-dasharray: 8 7; opacity: .35; }
+.district-label { font: 700 12.5px var(--sans); fill: var(--ink); }
+.bld { cursor: pointer; transition: transform .25s cubic-bezier(.3, 1.8, .5, 1); }
+.bld:hover { transform: translateY(-8px); }
+.bld-out { fill: none; stroke: var(--ink); stroke-width: 1.5; stroke-linejoin: round; }
+.bld-edge { fill: none; stroke: var(--ink); stroke-width: 1; opacity: .55; }
+.win { fill: #ECEDE6; opacity: .75; }
+.bld:hover .win { fill: #FFE24A; opacity: 1; }
+.city-trail { fill: none; stroke: var(--gold); stroke-width: 4; stroke-linecap: round; filter: drop-shadow(0 2px 0 #8A5800); }
+.blabel { visibility: hidden; pointer-events: none; }
+.blabel rect { fill: var(--ink); }
+.blabel text { font: 500 12px var(--sans); fill: #fff; }
+.tip-sub { font-size: 11.5px; opacity: .7; }
+.legend-hint { font: 17px var(--hand); }
+button.coin { border: 0; padding: 0 4px; cursor: pointer; font-family: var(--sans); transition: transform .2s cubic-bezier(.3, 1.8, .5, 1); }
+button.coin:hover, button.coin:focus-visible { transform: translateY(-2px) rotate(-12deg) scale(1.25); }

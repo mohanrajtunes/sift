@@ -35,16 +35,6 @@ function labelProps(st, cited) {
   }
 }
 
-function Note({ x, y, tilt, lines, pink, className }) {
-  return (
-    <g className={`note ${className}`} transform={`rotate(${tilt} ${x} ${y})`}>
-      <text x={x} y={y} className={pink ? 'note-text pink' : 'note-text'}>
-        {lines.map((l, i) => <tspan key={l} x={x} dy={i ? 26 : 0}>{l}</tspan>)}
-      </text>
-    </g>
-  )
-}
-
 export default function MetroMap() {
   const [hover, setHover] = useState(null)
 
@@ -109,14 +99,6 @@ export default function MetroMap() {
         </g>
         </g>
       </g>
-
-      <Note className="n1" x={572} y={466} tilt={-5} lines={['it starts', 'here']} />
-      <path className="arrow n1a" d="M606,506 C608,524 616,538 628,548 M628,548 l-9,-1 M628,548 l0,-9" />
-      <Note className="n2" x={1150} y={262} tilt={3} pink lines={['the proof is', 'in here!']} />
-      <path className="arrow pink n2a" d="M1160,292 C1100,300 1030,330 990,368 M990,368 l2,-10 M990,368 l10,-2" />
-      <Note className="n3" x={995} y={466} tilt={4} lines={['the train is', 'the agent']} />
-      <path className="arrow n3a" d="M1010,450 C1004,436 998,424 994,414 M994,414 l-5,8 M994,414 l7,6" />
-      <Note className="n4" x={1250} y={446} tilt={-3} lines={['one line per', 'folder']} />
 
       {hover && (
         <g className="tip" transform={`translate(${hover.x} ${hover.y - 30})`} pointerEvents="none">

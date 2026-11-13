@@ -36,7 +36,7 @@ export function layoutMetro(graph) {
     pick.forEach((f, j) => {
       const name = f.id.split('/').pop()
       stations[f.id] = {
-        id: f.id, x: startX + j * gap, y: j < k ? y : y + jog, color, lines: f.lines,
+        id: f.id, folder, x: startX + j * gap, y: j < k ? y : y + jog, color, lines: f.lines,
         name: name.length > 18 ? name.slice(0, 16) + '…' : name, above: j % 2 === 1,
       }
     })

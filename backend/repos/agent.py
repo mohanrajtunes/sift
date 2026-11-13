@@ -20,7 +20,10 @@ SYSTEM = (
     'answer: usually 2 to 5 tool calls. Then answer concisely. Every claim must cite a numbered '
     'excerpt like [3]; only numbers shown in tool results are valid. If the repository does not '
     'contain the answer, say so. Never invent files, functions or behavior. '
-    'Write citations exactly like [3], never in any other format.'
+    'Write citations exactly like [3], never in any other format. '
+    'End every sentence that makes a claim with its [n]; an answer with no [n] is wrong. '
+    'Format: short plain paragraphs, or a list with one item per line starting with "- ". '
+    'No numbered lists, no nested bullets, no headings, no tables.'
 )
 
 
@@ -90,7 +93,12 @@ class Session:
             end = min(int(end_line or start + 79), start + 79)
         except (TypeError, ValueError):
             return 'start_line and end_line must be numbers.'
+        if end < start:
+            end = start + 79
         got = [(n, lines[n]) for n in range(start, end + 1) if n in lines]
+        if not got and lines:  # a bad range: show the top of the file instead of failing
+            start = min(lines)
+            got = [(n, lines[n]) for n in range(start, start + 80) if n in lines]
         if not got:
             return f'No lines in that range. The file has lines 1-{max(lines) if lines else 0}.'
         a, b = got[0][0], got[-1][0]
@@ -160,7 +168,8 @@ def _chat_stream(messages, tools=True):
     body['stream'] = True
     r = _post(body, stream=True)
     content, calls = [], {}
-    for raw in r.iter_lines(decode_unicode=True):
+    for raw in r.iter_lines():
+        raw = raw.decode('utf-8') if raw else raw
         if not raw or not raw.startswith('data: '):
             continue
         data = raw[6:]
@@ -224,7 +233,7 @@ def agent_events(repo, question):
             break  # a bad tool call mid-way: answer from what we have
         calls = msg.get('tool_calls') or []
         if not calls:
-            answer = msg.get('content') or ''
+            answer = (msg.get('content') or '').strip() or None  # empty reply: force an answer below
             break
         if streamed:
             yield {'type': 'reset'}  # text before a tool call was thinking aloud, not the answer
@@ -259,6 +268,7 @@ def agent_events(repo, question):
         if answer is None:
             answer = 'I could not finish this question within the step limit.'
 
+    answer = re.sub(r'[【\[](\d+)\s*†[^】\]]*[】\]]', r'[\1]', answer)
     answer = re.sub(r'【(\d+)[^】]*】', r'[\1]', answer)
     used = sorted({int(n) for n in re.findall(r'\[(\d+)\]', answer) if 1 <= int(n) <= len(session.sources)})
     sources = []

@@ -4,10 +4,10 @@ import { gsap } from 'gsap'
 import { useGSAP } from '@gsap/react'
 import { DrawSVGPlugin } from 'gsap/DrawSVGPlugin'
 import { MotionPathPlugin } from 'gsap/MotionPathPlugin'
-import MetroMap from '../components/MetroMap.jsx'
+import CityHero, { CITY_STOPS, DISTRICTS } from '../components/CityHero.jsx'
 import Nav from '../components/Nav.jsx'
 import HomeMore from '../components/HomeMore.jsx'
-import { ANSWER, CODE, LINES, QUESTION, STOPS, TRY } from '../data/demoMap.js'
+import { ANSWER, CODE, QUESTION, TRY } from '../data/demoMap.js'
 import { addRepo, rememberRepo } from '../lib/api.js'
 import '../styles/home.css'
 
@@ -38,6 +38,7 @@ const EXAMPLES = ['owner/repo', ...TRY]
 
 export default function Home() {
   const root = useRef(null)
+  const loopRef = useRef(null)
   const navigate = useNavigate()
   const [url, setUrl] = useState('')
   const [state, setState] = useState('idle') // idle | boarding | error
@@ -66,8 +67,8 @@ export default function Home() {
 
     mm.add('(prefers-reduced-motion: reduce)', () => {
       // no motion: show the finished story
-      gsap.set('.nug-body', { scale: 1 })
-      gsap.set('.st.cited .st-dot', { opacity: 0 })
+      gsap.set('.bld-b2 .roof-gold, .bld-b3 .roof-gold', { opacity: 1 })
+      gsap.set('.blabel', { autoAlpha: 1 })
       gsap.set('.stamp-in', { opacity: 1 })
       gsap.set('.word, .coin', { opacity: 1 })
       gsap.set('.spec-wait', { autoAlpha: 0 })
@@ -76,10 +77,6 @@ export default function Home() {
     })
 
     mm.add('(prefers-reduced-motion: no-preference)', () => {
-      const route = document.querySelector('.route')
-      const onRoute = (start, end) => ({ path: route, align: route, alignOrigin: [0.5, 0.5], autoRotate: true, start, end })
-      gsap.set('.nug-body', { scale: 0, transformOrigin: '50% 50%' })
-
       // ---- 1. the page prints itself ----
       const intro = gsap.timeline({ defaults: { ease: 'power3.out' } })
       intro
@@ -89,11 +86,9 @@ export default function Home() {
         .from('.tag-line', { y: 24, autoAlpha: 0, stagger: 0.1, duration: 0.6 }, 0.45)
         .from('.ticket-wrap', { y: 40, rotation: -5, autoAlpha: 0, duration: 0.8, ease: 'back.out(1.7)' }, 0.7)
         .from('.try', { autoAlpha: 0, duration: 0.5 }, 1)
-        .from('.line-path', { drawSVG: '0%', duration: 1.1, stagger: 0.12, ease: 'power2.inOut' }, 0.5)
-        .from('.st-pop', { scale: 0, transformOrigin: '50% 50%', duration: 0.45, stagger: 0.035, ease: 'back.out(3)' }, 1.1)
-        .from('.st-label', { autoAlpha: 0, duration: 0.4, stagger: 0.02 }, 1.3)
-        .fromTo('.note', { clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0% 0 0)', duration: 0.7, stagger: 0.35, ease: 'steps(9)' }, 1.8)
-        .from('.arrow', { drawSVG: '0%', duration: 0.5, stagger: 0.35 }, 2.1)
+        .from('.city-ground', { autoAlpha: 0, y: 30, duration: 0.8 }, 0.4)
+        .from('.bld-in', { scaleY: 0, transformOrigin: '50% 100%', duration: 0.6, stagger: 0.05, ease: 'back.out(1.6)' }, 0.7)
+        .from('.win', { opacity: 0, duration: 0.3, stagger: { each: 0.004, from: 'random' }, clearProps: 'opacity' }, 1.3)
         .from('.legend > *', { autoAlpha: 0, y: 8, stagger: 0.06, duration: 0.4 }, 2)
         .from('.spec', { y: 80, rotation: 8, autoAlpha: 0, duration: 1.4, ease: 'elastic.out(1, 0.5)' }, 1.6)
         .from('.pin', { y: -30, scale: 1.6, autoAlpha: 0, duration: 0.4, ease: 'bounce.out' }, 2.4)
@@ -101,55 +96,67 @@ export default function Home() {
       // ---- 2. the agent rides, on loop ----
       const stamp = (n) => gsap.timeline()
         .fromTo(`.stamp-${n} .stamp-in`,
-          { scale: 2.4, opacity: 0, rotation: STOPS[n - 1].tilt + 25 },
-          { scale: 1, opacity: 1, rotation: STOPS[n - 1].tilt, duration: 0.28, ease: 'power4.in' })
+          { scale: 2.4, opacity: 0, rotation: CITY_STOPS[n - 1].tilt + 25 },
+          { scale: 1, opacity: 1, rotation: CITY_STOPS[n - 1].tilt, duration: 0.28, ease: 'power4.in' })
         .to(`.stamp-${n} .stamp-in`, { scale: 1.12, duration: 0.08, yoyo: true, repeat: 1 })
 
-      const strike = (id, dotClass) => gsap.timeline()
-        .to(`.${dotClass}`, { scale: 0, opacity: 0, transformOrigin: '50% 50%', duration: 0.15 })
-        .fromTo(`.nug-${id} .nug-body`, { scale: 0, rotation: -40, transformOrigin: '50% 50%' },
-          { scale: 1, rotation: 0, duration: 0.6, ease: 'back.out(3.5)' }, '<')
-        .fromTo(`.nug-${id} .spark`, { opacity: 1, y: 0, scale: 1 },
-          { opacity: 0, y: -16, scale: 0.4, duration: 0.6, stagger: 0.02, ease: 'power2.out', immediateRender: false }, '<0.1')
+      // the express hops roof to roof, leaving a gold trail
+      const ride = (i, duration) => {
+        const t = gsap.timeline().to('.train', {
+          motionPath: { path: `#hop-${i}`, align: `#hop-${i}`, alignOrigin: [0.5, 0.5] },
+          duration, ease: i === 0 ? 'power2.in' : 'power1.inOut',
+        })
+        if (i > 0) t.fromTo(`.city-trail-${i}`, { drawSVG: '0%' }, { drawSVG: '100%', duration, ease: 'power1.inOut' }, '<')
+        return t
+      }
+      // the building takes the landing, its lights come on, its name pops up
+      const land = (id) => gsap.timeline()
+        .fromTo(`.bld-${id} .bld-in`, { scaleY: 0.88, transformOrigin: '50% 100%' }, { scaleY: 1, duration: 0.6, ease: 'elastic.out(1, 0.35)' })
+        .fromTo('.train-body', { scaleX: 1.3, scaleY: 0.75, transformOrigin: '50% 100%' }, { scaleX: 1, scaleY: 1, duration: 0.5, ease: 'elastic.out(1, 0.4)' }, '<')
+        .to(`.bld-${id} .win`, { fill: '#FFE24A', opacity: 1, duration: 0.05, stagger: { each: 0.018, from: 'random' } }, '<')
+        .fromTo(`.blabel-${id}`, { autoAlpha: 0, y: 8 }, { autoAlpha: 1, y: 0, duration: 0.3, ease: 'back.out(2)' }, '<0.1')
+      // a cited file: the roof turns to gold
+      const strike = (id) => gsap.timeline()
+        .to(`.bld-${id} .roof-gold`, { opacity: 1, duration: 0.35 })
 
-      const ride = (from, to, duration) => gsap.timeline()
-        .fromTo('.train', { motionPath: onRoute(from, from) }, { motionPath: onRoute(from, to), duration, ease: 'power1.inOut' })
-        .fromTo('.trail-reveal', { drawSVG: `0% ${from * 100}%` }, { drawSVG: `0% ${to * 100}%`, duration, ease: 'power1.inOut' }, '<')
+        .fromTo(`.spk-${id} .spark`, { opacity: 1, y: 0, scale: 1 },
+          { opacity: 0, y: -18, scale: 0.4, duration: 0.6, stagger: 0.02, ease: 'power2.out', immediateRender: false }, '<')
 
       const loop = gsap.timeline({ repeat: -1, repeatDelay: 0.6, paused: true })
+      loopRef.current = loop
       loop
-        .set('.train', { motionPath: onRoute(0, 0) })
-        .set('.trail-reveal', { drawSVG: '0% 0%' })
+        .set('.city-trail', { drawSVG: '0%' })
         .set('.train', { autoAlpha: 1 })
-        .fromTo('.train-pop', { scale: 0 }, { scale: 1, duration: 0.4, ease: 'back.out(3)', immediateRender: false })
-        .add(stamp(1))
-        .add(ride(0, STOPS[1].at, 1.7), '+=0.35')
-        .add(strike('views', 'st-dot-aiviews'))
+        .fromTo('.train-pop', { scale: 0 }, { scale: 1, duration: 0.3, ease: 'back.out(3)', immediateRender: false })
+        .add(ride(0, 0.6), '<')
+        .add(land('c1'))
+        .add(stamp(1), '<')
+        .add(ride(1, 1.4), '+=0.5')
+        .add(land('b2'))
+        .add(strike('b2'), '<')
         .add(stamp(2), '<0.1')
-        .add(ride(STOPS[1].at, 1, 1.1), '+=0.4')
-        .add(strike('services', 'st-dot-aiservices'))
+        .add(ride(2, 0.9), '+=0.5')
+        .add(land('b3'))
+        .add(strike('b3'), '<')
         .add(stamp(3), '<0.1')
         .to('.train-body', { rotation: 8, duration: 0.07, yoyo: true, repeat: 5, transformOrigin: '50% 50%' }, '<') // happy wiggle
         .to('.spec-wait', { autoAlpha: 0, duration: 0.2 }, '+=0.1')
         .to('.word', { opacity: 1, duration: 0.2, stagger: 0.035 }, '<')
         .fromTo('.coin', { rotationY: 180, scale: 0.2, opacity: 0 }, { rotationY: 0, scale: 1, opacity: 1, duration: 0.5, stagger: 0.4, ease: 'back.out(2.5)' }, '<0.5')
         .to('.code .hl', { backgroundSize: '100% 100%', duration: 0.6, stagger: 0.12, ease: 'power2.out' }, '<0.3')
-        .fromTo('.glint', { x: 0, opacity: 0.9 }, { x: 60, duration: 0.5, stagger: 0.15, immediateRender: false })
-        .set('.glint', { opacity: 0 })
-        .fromTo('.glint', { x: 0, opacity: 0.9 }, { x: 60, duration: 0.5, stagger: 0.15, immediateRender: false }, '+=1.6')
-        .set('.glint', { opacity: 0 })
         // tidy up for the next ride
-        .to('.word, .coin', { opacity: 0, duration: 0.4 }, '+=1.2')
+        .to('.word, .coin', { opacity: 0, duration: 0.4 }, '+=2.6')
         .to('.spec-wait', { autoAlpha: 1, duration: 0.3 }, '>')
         .to('.code .hl', { backgroundSize: '0% 100%', duration: 0.4 }, '<')
         .to('.stamp-in', { opacity: 0, scale: 0.6, duration: 0.3, stagger: 0.05 }, '<')
+        .to('.blabel', { autoAlpha: 0, duration: 0.3 }, '<')
         .to('.train-pop', { scale: 0, duration: 0.3 }, '<')
         .set('.train', { autoAlpha: 0 }, '>')
-        .to('.trail-reveal', { drawSVG: '100% 100%', duration: 0.6 }, '<')
-        .to('.nug-body', { scale: 0, duration: 0.3 }, '<0.2')
-        .to('.st.cited .st-dot', { scale: 1, opacity: 1, duration: 0.3, ease: 'back.out(3)' }, '>-0.1')
+        .to('.city-trail', { drawSVG: '100% 100%', duration: 0.6 }, '<')
+        .to('.roof-gold', { opacity: 0, duration: 0.4 }, '<0.2')
+        .to('.win', { fill: '#ECEDE6', opacity: 0.75, duration: 0.4, clearProps: 'fill,opacity' }, '<')
 
-      intro.call(() => loop.play(), null, 2.6)
+      intro.call(() => loop.play(), null, 3)
 
       // the train bobs a little while it idles
       gsap.to('.train-body', { y: -1.5, duration: 0.35, yoyo: true, repeat: -1, ease: 'sine.inOut' })
@@ -165,6 +172,22 @@ export default function Home() {
       return () => window.removeEventListener('pointermove', move)
     })
   }, { scope: root })
+
+  // a coin in the card points at the building it cites
+  const pointRef = useRef(null)
+  const point = (n) => {
+    const id = n === 1 ? 'b2' : 'b3'
+    pointRef.current?.revert()
+    pointRef.current = gsap.timeline()
+      .to('.bld, .city-trail, .blabel, .cstamp, .train', { opacity: 0.18, duration: 0.25 })
+      .to(`.bld-${id}, .blabel-${id}`, { opacity: 1, duration: 0.25 }, '<')
+      .to(`.bld-${id} .bld-in`, { y: -16, duration: 0.35, ease: 'back.out(3)' }, '<')
+      .to(`.bld-${id} .roof-gold`, { opacity: 1, duration: 0.25 }, '<')
+      .to(`.bld-${id} .win`, { fill: '#FFE24A', opacity: 1, duration: 0.2 }, '<')
+      .to(`.blabel-${id}`, { autoAlpha: 1, y: -16, duration: 0.3 }, '<')
+      .fromTo(`.spk-${id} .spark`, { opacity: 1, y: -16, scale: 1 }, { opacity: 0, y: -34, scale: 0.4, duration: 0.6, stagger: 0.02, immediateRender: false }, '<')
+  }
+  const unpoint = () => { pointRef.current?.revert(); pointRef.current = null }
 
   const swing = () => {
     // one swing at a time: the pin moves with the card, so hovering it kept restarting the swing
@@ -218,8 +241,9 @@ export default function Home() {
           </p>
         </section>
 
-        <section className="stage">
-          <MetroMap />
+        <section className="stage"
+          onMouseEnter={() => loopRef.current?.pause()} onMouseLeave={() => loopRef.current?.play()}>
+          <CityHero />
 
           <article className="spec" aria-label="Example answer">
             <div className="spec-back ht-yellow" aria-hidden="true" />
@@ -231,7 +255,10 @@ export default function Home() {
                 <span className="spec-wait" aria-hidden="true">the agent is still riding…</span>
                 {ANSWER.map((part, i) => typeof part === 'string'
                   ? part.split(' ').map((w, j) => <span className="word" key={`${i}-${j}`}>{w}{' '}</span>)
-                  : <span className="coin" key={i}>{part.cite}</span>)}
+                  : <button type="button" className="coin" key={i} aria-label={`Show source ${part.cite} on the map`}
+                      onMouseEnter={() => point(part.cite)} onMouseLeave={unpoint}
+                      onFocus={() => point(part.cite)} onBlur={unpoint}
+                      onClick={() => point(part.cite)}>{part.cite}</button>)}
               </p>
               <div className="code">
                 {CODE.map((l) => (
@@ -242,7 +269,8 @@ export default function Home() {
           </article>
 
           <ul className="legend">
-            {LINES.map((l) => <li key={l.id}><i style={{ background: l.color }} />{l.label}</li>)}
+            {DISTRICTS.map((l) => <li key={l.id}><i style={{ background: l.color }} />{l.label}</li>)}
+            <li className="legend-hint">Hover a building to look around</li>
             <li>
               <svg width="16" height="16" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 9l6-5 6 3 1 7-7 3-6-3z" fill="#F2B925" stroke="#9A6400" /></svg>
               cited

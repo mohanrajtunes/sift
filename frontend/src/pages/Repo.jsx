@@ -95,13 +95,24 @@ function Inline({ text, onCite }) {
 }
 
 function Answer({ text, onCite }) {
-  return text.split(/\n{2,}/).map((block, i) => {
-    const lines = block.split('\n')
-    if (lines.every((l) => /^\s*([-*]|\d+\.)\s/.test(l))) {
-      return <ul key={i}>{lines.map((l, j) => <li key={j}><Inline text={l.replace(/^\s*([-*]|\d+\.)\s/, '')} onCite={onCite} /></li>)}</ul>
+  text = text.replace(/[【\[](\d+)\s*†[^】\]]*[】\]]/g, '[$1]')
+  const out = []
+  let list = null
+  const flush = () => { if (list) { out.push(<ul key={out.length}>{list}</ul>); list = null } }
+  text.split('\n').forEach((raw, i) => {
+    const line = raw.trim()
+    if (!line) return flush()
+    const m = line.match(/^([-*•]|\d+\.)\s+(.*)$/)
+    if (m) {
+      list = list || []
+      list.push(<li key={i}><Inline text={m[2]} onCite={onCite} /></li>)
+    } else {
+      flush()
+      out.push(<p key={i}><Inline text={line} onCite={onCite} /></p>)
     }
-    return <p key={i}><Inline text={block} onCite={onCite} /></p>
   })
+  flush()
+  return out
 }
 
 function CodePanel({ repoId, source, onClose }) {
@@ -204,7 +215,8 @@ export default function Repo() {
   const last = turns[turns.length - 1]
   const visited = [...new Set(turns.flatMap((t) => t.steps.flatMap((s) => s.files || [])))]
   const cited = [...new Set(last ? last.sources.map((s) => s.path) : [])]
-  const at = last ? (last.steps.filter((s) => s.files?.length).pop()?.files[0] || null) : null
+  // the express goes where the agent looked hardest: files it opened, and the top hit of each search
+  const route = last ? [...new Set(last.steps.flatMap((s) => (s.tool === 'read_file' ? s.files : (s.files || []).slice(0, 1)) || []))] : []
 
   const update = (tid, fn) => setTurns((ts) => ts.map((t) => (t.id === tid ? fn(t) : t)))
 
@@ -273,7 +285,7 @@ export default function Repo() {
       <main className="rp-grid">
         <section className="rp-map">
           {graph.nodes.length > 0 && <FileSearch graph={graph} onFocus={setFocus} />}
-          <RepoMap graph={graph} visited={visited} cited={cited} at={at} focus={focus}
+          <RepoMap graph={graph} visited={visited} cited={cited} route={route} busy={busy} focus={focus}
             onPick={(path) => ready && !busy && setQuestion(`What does ${path} do?`)} />
           <ul className="rp-legend">
             <li><i className="dot" />not visited</li>
