@@ -52,6 +52,7 @@ class Session:
     def __init__(self, repo):
         self.repo = repo
         self.sources = []
+        self.touched = []  # files the last tool call looked at, for the live map
 
     def cite(self, path, start, end):
         for i, s in enumerate(self.sources, 1):
@@ -62,6 +63,7 @@ class Session:
 
     def search_code(self, query='', **_):
         hits = search_chunks(self.repo, query, mode='hybrid', limit=5)
+        self.touched = list(dict.fromkeys(h['path'] for h in hits))
         if not hits:
             return 'No results.'
         return '\n\n'.join(
@@ -92,6 +94,7 @@ class Session:
         if not got:
             return f'No lines in that range. The file has lines 1-{max(lines) if lines else 0}.'
         a, b = got[0][0], got[-1][0]
+        self.touched = [path]
         body = '\n'.join(f'{n}: {text}' for n, text in got)
         return f'[{self.cite(path, a, b)}] {path}:{a}-{b}\n{body}'
 
@@ -106,11 +109,13 @@ class Session:
                 if name.lower() in line.lower() and key not in seen:
                     seen.add(key)
                     out.append(f'{key[0]}:{key[1]}: {line.strip()[:160]}')
+        self.touched = list(dict.fromkeys(o.split(':')[0] for o in out))[:12]
         if not out:
             return 'No matches.'
         return '\n'.join(out[:25]) + '\n(Use read_file on a location to cite it.)'
 
     def run(self, name, raw_args):
+        self.touched = []
         try:
             args = json.loads(raw_args or '{}')
         except json.JSONDecodeError:
@@ -122,17 +127,14 @@ class Session:
         return args, fn(**args)
 
 
-def _chat(messages, tools=True):
-    body = {'model': MODEL, 'temperature': 0.1, 'messages': messages}
-    if tools:
-        body['tools'] = TOOLS
-        body['tool_choice'] = 'auto'
+def _post(body, stream=False):
     for attempt in range(2):
         r = requests.post(
             GROQ_URL,
             headers={'Authorization': f"Bearer {os.environ['GROQ_API_KEY']}"},
             json=body,
             timeout=90,
+            stream=stream,
         )
         if r.status_code == 429 and attempt == 0:
             time.sleep(20)
@@ -140,10 +142,64 @@ def _chat(messages, tools=True):
         break
     if r.status_code != 200:
         raise RuntimeError(f'LLM error {r.status_code}: {r.text[:300]}')
-    return r.json()['choices'][0]['message']
+    return r
 
 
-def run_agent(repo, question):
+def _body(messages, tools):
+    body = {'model': MODEL, 'temperature': 0.1, 'messages': messages}
+    if tools:
+        body['tools'] = TOOLS
+        body['tool_choice'] = 'auto'
+    return body
+
+
+def _chat_stream(messages, tools=True):
+    """Stream one model turn. Yields ('token', text) while it writes,
+    then ('message', full_message) at the end."""
+    body = _body(messages, tools)
+    body['stream'] = True
+    r = _post(body, stream=True)
+    content, calls = [], {}
+    for raw in r.iter_lines(decode_unicode=True):
+        if not raw or not raw.startswith('data: '):
+            continue
+        data = raw[6:]
+        if data == '[DONE]':
+            break
+        delta = (json.loads(data).get('choices') or [{}])[0].get('delta') or {}
+        if delta.get('content'):
+            content.append(delta['content'])
+            yield 'token', delta['content']
+        for tc in delta.get('tool_calls') or []:
+            c = calls.setdefault(tc.get('index', 0), {
+                'id': '', 'type': 'function', 'function': {'name': '', 'arguments': ''}})
+            if tc.get('id'):
+                c['id'] = tc['id']
+            fn = tc.get('function') or {}
+            c['function']['name'] += fn.get('name') or ''
+            c['function']['arguments'] += fn.get('arguments') or ''
+    msg = {'role': 'assistant', 'content': ''.join(content)}
+    if calls:
+        msg['tool_calls'] = [calls[k] for k in sorted(calls)]
+    yield 'message', msg
+
+
+def _note(tool, result):
+    if result.startswith(('No ', 'Invalid', 'Unknown', 'Give ')):
+        return result.split('\n')[0][:80]
+    if tool == 'search_code':
+        return f"found {result.count(chr(10) + chr(10)) + 1} excerpts"
+    if tool == 'read_file':
+        first = result.split('\n')[0]
+        return 'lines ' + first.rsplit(':', 1)[-1].replace('-', ' to ')
+    if tool == 'find_references':
+        return f"{len([l for l in result.split(chr(10)) if l and not l.startswith('(')])} matches"
+    return ''
+
+
+def agent_events(repo, question):
+    """Run the agent and yield events as they happen:
+    step (running/done), token, reset, done."""
     session = Session(repo)
     messages = [
         {'role': 'system', 'content': SYSTEM},
@@ -152,9 +208,17 @@ def run_agent(repo, question):
     steps, answer = [], None
 
     for _ in range(MAX_STEPS):
+        msg, streamed = None, False
         try:
-            msg = _chat(messages)
+            for kind, val in _chat_stream(messages):
+                if kind == 'token':
+                    streamed = True
+                    yield {'type': 'token', 't': val}
+                else:
+                    msg = val
         except RuntimeError:
+            if streamed:
+                yield {'type': 'reset'}
             if not steps:
                 raise
             break  # a bad tool call mid-way: answer from what we have
@@ -162,25 +226,40 @@ def run_agent(repo, question):
         if not calls:
             answer = msg.get('content') or ''
             break
+        if streamed:
+            yield {'type': 'reset'}  # text before a tool call was thinking aloud, not the answer
         messages.append({'role': 'assistant', 'content': msg.get('content') or '', 'tool_calls': calls})
         for call in calls:
             name = call['function']['name']
+            i = len(steps) + 1
+            try:
+                preview = json.loads(call['function'].get('arguments') or '{}')
+            except json.JSONDecodeError:
+                preview = {}
+            yield {'type': 'step', 'i': i, 'status': 'running', 'tool': name, 'args': preview}
             args, result = session.run(name, call['function'].get('arguments'))
-            steps.append({'tool': name, 'args': args})
+            steps.append({'tool': name, 'args': args, 'files': session.touched, 'note': _note(name, result)})
+            yield {'type': 'step', 'i': i, 'status': 'done', **steps[-1]}
             messages.append({'role': 'tool', 'tool_call_id': call['id'], 'content': result[:8000]})
 
     if answer is None:
         messages.append({'role': 'user', 'content': 'Stop using tools. Answer now from what you have, with citations.'})
         for _ in range(2):
             try:
-                answer = _chat(messages, tools=False).get('content') or ''
+                parts = []
+                for kind, val in _chat_stream(messages, tools=False):
+                    if kind == 'token':
+                        parts.append(val)
+                        yield {'type': 'token', 't': val}
+                answer = ''.join(parts)
                 break
             except RuntimeError:
+                yield {'type': 'reset'}
                 messages.append({'role': 'user', 'content': 'Do not call any tool. Reply in plain text only.'})
         if answer is None:
             answer = 'I could not finish this question within the step limit.'
 
-    answer = re.sub(r'\u3010(\d+)[^\u3011]*\u3011', r'[\1]', answer)
+    answer = re.sub(r'【(\d+)[^】]*】', r'[\1]', answer)
     used = sorted({int(n) for n in re.findall(r'\[(\d+)\]', answer) if 1 <= int(n) <= len(session.sources)})
     sources = []
     for n in used:
@@ -189,4 +268,11 @@ def run_agent(repo, question):
             'n': n, **s,
             'url': f"{repo.url}/blob/HEAD/{s['path']}#L{s['start_line']}-L{s['end_line']}",
         })
-    return {'answer': answer, 'sources': sources, 'steps': steps}
+    yield {'type': 'done', 'answer': answer, 'sources': sources, 'steps': steps}
+
+
+def run_agent(repo, question):
+    """Same agent, no streaming: returns the final result (used by evals and /agent/)."""
+    for event in agent_events(repo, question):
+        if event['type'] == 'done':
+            return {k: event[k] for k in ('answer', 'sources', 'steps')}

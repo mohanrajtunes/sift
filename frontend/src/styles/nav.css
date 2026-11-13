@@ -1,0 +1,40 @@
+/* ---------- nav ---------- */
+.nav {
+  position: relative; z-index: 5;
+  display: flex; align-items: center; gap: 28px;
+  height: 62px; padding: 0 36px; font-size: 15px;
+}
+.nav a { text-decoration: none; }
+.nav .sp { flex: 1; }
+.logo { display: flex; align-items: center; gap: 9px; font-weight: 700; font-size: 20px; letter-spacing: -.02em; }
+.gh { border: 1.5px solid var(--ink); padding: 7px 14px; border-radius: 999px; transition: background .15s, color .15s; }
+.gh:hover { background: var(--ink); color: var(--paper); }
+/* hover the logo and the sieve gives a shake */
+@media (prefers-reduced-motion: no-preference) {
+  .logo:hover .logo-mark { animation: sieve .5s ease-in-out; }
+  .logo:hover .logo-nug { animation: hop .5s ease-in-out; transform-box: fill-box; transform-origin: center; }
+}
+@keyframes sieve { 20% { transform: rotate(-14deg); } 40% { transform: rotate(10deg); } 60% { transform: rotate(-6deg); } 80% { transform: rotate(3deg); } }
+@keyframes hop { 30% { transform: translate(-2px, -3px); } 60% { transform: translate(1px, -1px); } }
+
+.nav a.active { text-decoration: underline; text-decoration-color: var(--pink); text-decoration-thickness: 2px; text-underline-offset: 5px; }
+@media (max-width: 640px) {
+  .nav { gap: 16px; padding: 0 16px; font-size: 14px; }
+  .nav a:not(.logo):not(.gh) { display: none; }
+}
+
+/* page transition: riso ink wipe */
+.wipe { position: fixed; inset: 0; z-index: 100; pointer-events: none; visibility: hidden; overflow: hidden; }
+.wipe-ink { position: absolute; inset: 0; mix-blend-mode: multiply; }
+.wipe-blue { background: var(--blue); translate: -14px 0; }
+.wipe-pink { background: var(--pink); translate: 10px 8px; }
+.wipe-train { position: absolute; top: 50%; left: 0; width: 120px; height: 56px; margin-top: -28px; border-radius: 28px; background: var(--paper); z-index: 2; }
+.wipe-train span { position: absolute; right: 18px; top: 14px; width: 24px; height: 28px; border-radius: 6px; background: var(--yellow); }
+
+/* footer */
+.footer { position: relative; z-index: 3; margin-top: 60px; padding: 40px 36px 34px; border-top: 1.5px solid var(--ink); }
+.ft-big { font-family: var(--serif); font-size: 30px; line-height: 1.1; max-width: 26ch; }
+.ft-links { display: flex; flex-wrap: wrap; gap: 10px 22px; margin-top: 18px; font-size: 15px; }
+.ft-links a { text-decoration-color: var(--pink); text-underline-offset: 4px; }
+.ft-small { margin-top: 18px; font-size: 13px; color: var(--ink-soft); }
+@media (max-width: 640px) { .footer { padding: 30px 16px; } .ft-big { font-size: 24px; } }

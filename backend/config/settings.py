@@ -15,12 +15,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-x2lonk97&x&@)bo#*_fs7_vcac)$y51k0u+mnqauhqlp7*2^zu'
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY') or 'django-insecure-x2lonk97&x&@)bo#*_fs7_vcac)$y51k0u+mnqauhqlp7*2^zu'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DJANGO_DEBUG', '1') == '1'
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [h for h in os.environ.get('ALLOWED_HOSTS', '').split(',') if h] or (['*'] if DEBUG else [])
 
 
 # Application definition
@@ -123,4 +123,6 @@ MAILERS = {
     },
 }
 
-CORS_ALLOW_ALL_ORIGINS = True  
+# local dev: any origin. production: set CORS_ALLOWED_ORIGINS=https://your-frontend.vercel.app
+CORS_ALLOWED_ORIGINS = [o for o in os.environ.get('CORS_ALLOWED_ORIGINS', '').split(',') if o]
+CORS_ALLOW_ALL_ORIGINS = not CORS_ALLOWED_ORIGINS  

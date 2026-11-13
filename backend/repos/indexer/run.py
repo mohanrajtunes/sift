@@ -53,6 +53,8 @@ def index_repo(repo_id):
                 for s, e, t in chunk_text(text, language)
             ])
             count += 1
+            if count % 10 == 0:  # lets the live map show progress
+                Repo.objects.filter(id=repo.id).update(file_count=count)
             if count >= MAX_FILES:
                 break
         embed_chunks(repo)

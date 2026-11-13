@@ -1,0 +1,85 @@
+:root {
+  --paper: #ECEDE6;
+  --ink: #1D2A5C;          /* riso medium blue does the job of black */
+  --ink-soft: #5a6286;
+  --pink: #FF48B0;
+  --pink-ink: #E0218F;     /* darker pink for text, readable on paper */
+  --blue: #3255A4;
+  --orange: #FF7A3D;
+  --green: #00A95C;
+  --yellow: #FFE24A;
+  --gold-hi: #FFF0B0;
+  --gold: #F2B925;
+  --gold-lo: #9A6400;
+
+  --serif: 'Libre Caslon Condensed', Georgia, serif;
+  --sans: 'Schibsted Grotesk', system-ui, sans-serif;
+  --mono: 'Spline Sans Mono', ui-monospace, monospace;
+  --hand: 'Gochi Hand', cursive;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+a { color: inherit; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--pink); outline-offset: 3px; border-radius: 4px; }
+
+/* riso grain over the whole page; it shifts a little so the paper feels alive */
+.grain {
+  position: fixed; inset: -50%; pointer-events: none; z-index: 50;
+  opacity: .32; mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' seed='4'/%3E%3CfeColorMatrix values='0 0 0 0 .1 0 0 0 0 .15 0 0 0 0 .35 0 0 0 .5 0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+@media (prefers-reduced-motion: no-preference) {
+  .grain { animation: grain 0.6s steps(3) infinite; }
+}
+@keyframes grain {
+  0% { transform: translate(0, 0); }
+  33% { transform: translate(-37px, 21px); }
+  66% { transform: translate(24px, -40px); }
+}
+
+.ht-pink { background-image: radial-gradient(var(--pink) 1.3px, transparent 1.6px); background-size: 6px 6px; }
+.ht-yellow { background-image: radial-gradient(var(--yellow) 2px, transparent 2.4px); background-size: 7px 7px; }
+
+/* the peeking cat */
+.cat-pos { position: fixed; left: 0; top: 0; width: 120px; height: 110px; z-index: 60; pointer-events: none; }
+.cat-in { width: 120px; height: 110px; transform: translateY(130px); }
+.nyan { position: fixed; left: 0; top: 0; z-index: 60; pointer-events: none; display: flex; align-items: center; visibility: hidden; }
+.rainbow { display: flex; flex-direction: column; width: 300px; margin-right: -14px; }
+.rainbow i { display: block; height: 9px; mix-blend-mode: multiply;
+  -webkit-mask: linear-gradient(90deg, transparent, #000 40%); mask: linear-gradient(90deg, transparent, #000 40%);
+  background-image: radial-gradient(rgba(255,255,255,.35) 1px, transparent 1.4px) !important; }
+@media (prefers-reduced-motion: no-preference) { .rainbow i:nth-child(odd) { animation: wave .3s steps(2) infinite; } }
+@keyframes wave { 50% { transform: translateY(3px); } }
+
+/* ticket punch buttons: notched like a ticket, pressing punches a hole and squashes it a little */
+.askbar button, .copy, .empty button, .rp-error button, .ticket-go, .strip-link, .gh {
+  position: relative; overflow: hidden;
+  -webkit-mask: radial-gradient(circle 6px at 0 50%, #0000 97%, #000) left / 51% 100% no-repeat,
+                radial-gradient(circle 6px at 100% 50%, #0000 97%, #000) right / 51% 100% no-repeat;
+  mask: radial-gradient(circle 6px at 0 50%, #0000 97%, #000) left / 51% 100% no-repeat,
+        radial-gradient(circle 6px at 100% 50%, #0000 97%, #000) right / 51% 100% no-repeat;
+  transition: transform .12s cubic-bezier(.3, 1.6, .5, 1), background .15s;
+}
+.askbar button::after, .copy::after, .empty button::after, .rp-error button::after, .strip-link::after, .gh::after {
+  content: ''; position: absolute; right: 12px; top: 50%; width: 8px; height: 8px; margin-top: -4px; border-radius: 50%;
+  background: var(--paper); box-shadow: inset 1px 1px 2px rgba(0,0,0,.35); transform: scale(0); transition: transform .15s;
+}
+.askbar button:active:not(:disabled), .copy:active, .empty button:active, .rp-error button:active, .ticket-go:active, .strip-link:active, .gh:active { transform: scale(.95, .9); }
+.askbar button:active::after, .copy:active::after, .empty button:active::after, .rp-error button:active::after, .strip-link:active::after, .gh:active::after { transform: scale(1); }
+.empty button, .copy, .rp-error button, .gh { border-radius: 4px !important; padding-left: 16px !important; padding-right: 22px !important; }
+.strip-link { padding: 8px 22px 8px 16px; background: var(--pink); color: #fff !important; text-decoration: none !important; }
+
+.nyan-box { width: 170px; height: 170px; }
+
+.nyan { pointer-events: auto !important; cursor: pointer; }
+.nyan-box { pointer-events: none; }
+.nyan-star { position: fixed; z-index: 61; pointer-events: none; font-size: 22px; translate: -50% -50%; }
+.nyan-count { position: fixed; left: 16px; bottom: 14px; z-index: 61; font: 18px var(--hand); background: #fff; border: 1.5px solid var(--ink); padding: 4px 12px; transform: rotate(-3deg); }
