@@ -12,7 +12,7 @@ from .indexer.run import index_repo
 from .models import Repo
 from .search import search_chunks
 from .serializers import RepoSerializer
-
+from .agent import run_agent
 
 def _run(repo_id):
     try:
@@ -64,5 +64,19 @@ def ask(request, repo_id):
         return Response({'detail': 'question is required'}, status=400)
     try:
         return Response(answer_question(repo, question))
+    except Exception as e:
+        return Response({'detail': str(e)}, status=502)
+
+
+@api_view(['POST'])
+def agent(request, repo_id):
+    repo = get_object_or_404(Repo, id=repo_id)
+    if repo.status != 'ready':
+        return Response({'detail': 'Repo is not ready yet'}, status=409)
+    question = (request.data.get('question') or '').strip()
+    if not question:
+        return Response({'detail': 'question is required'}, status=400)
+    try:
+        return Response(run_agent(repo, question))
     except Exception as e:
         return Response({'detail': str(e)}, status=502)

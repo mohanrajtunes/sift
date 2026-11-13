@@ -6,4 +6,5 @@ urlpatterns = [
     path('repos/<int:pk>/', views.RepoDetail.as_view()),
     path('repos/<int:repo_id>/search/', views.search),
     path('repos/<int:repo_id>/ask/', views.ask),
+    path('repos/<int:repo_id>/agent/', views.agent),
 ]

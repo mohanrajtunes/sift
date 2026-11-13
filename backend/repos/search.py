@@ -54,15 +54,15 @@ def search_chunks(repo, q, mode='hybrid', limit=8):
     """mode: keyword | vector | hybrid (reciprocal rank fusion)."""
     rankings = []
     if mode in ('keyword', 'hybrid'):
-        rankings.append(keyword_rank(repo, q))
+        rankings.append((0.5 if mode == 'hybrid' else 1.0, keyword_rank(repo, q)))
     if mode in ('vector', 'hybrid'):
-        rankings.append(vector_rank(repo, q))
+        rankings.append((1.0, vector_rank(repo, q)))
 
     scores, chunks = {}, {}
-    for ranked in rankings:
+    for weight, ranked in rankings:
         for rank, c in enumerate(ranked):
             chunks[c.id] = c
-            scores[c.id] = scores.get(c.id, 0) + 1 / (60 + rank + 1)
+            scores[c.id] = scores.get(c.id, 0) + weight / (60 + rank + 1)
 
     best = sorted(scores, key=scores.get, reverse=True)[:limit]
     return [

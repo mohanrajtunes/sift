@@ -1,0 +1,14 @@
+{
+  "repo": "mohanrajtunes/hirelens",
+  "questions": 24,
+  "retrieval": {
+    "keyword": 71,
+    "vector": 100,
+    "hybrid": 96
+  },
+  "answers": {
+    "asked": 23,
+    "correct_pct": 96,
+    "grounded_pct": 87
+  }
+}
