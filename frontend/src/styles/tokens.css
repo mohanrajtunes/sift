@@ -83,3 +83,8 @@ button { font: inherit; color: inherit; }
 .nyan-box { pointer-events: none; }
 .nyan-star { position: fixed; z-index: 61; pointer-events: none; font-size: 22px; translate: -50% -50%; }
 .nyan-count { position: fixed; left: 16px; bottom: 14px; z-index: 61; font: 18px var(--hand); background: #fff; border: 1.5px solid var(--ink); padding: 4px 12px; transform: rotate(-3deg); }
+
+@media (max-width: 640px) {
+  .nyan-box { width: 84px; height: 84px; }
+  .nyan-count { font-size: 15px; left: 10px; bottom: 10px; padding: 3px 9px; }
+}
