@@ -8,7 +8,7 @@ Paste a GitHub repo, ask it anything, and see the exact lines that answer it.
 
 > The API runs on a free tier and sleeps when idle. The first request after a while can take about 50 seconds.
 
-![Sift answering a question about a repo, with the metro map and cited lines](repo-page.png)
+![Sift answering a question about a repo, with the metro map and cited lines](screenshots/repo-page.png)
 
 Sift indexes a repo, searches it with keyword and vector search together, and runs an agent that opens files and follows references until it can answer. Every claim in the answer cites the lines it came from. The repo shows up as a metro map, and you can watch the agent ride it while it works.
 
