@@ -1,6 +1,12 @@
 # Sift
 
+[![tests](https://github.com/mohanrajtunes/sift/actions/workflows/tests.yml/badge.svg)](https://github.com/mohanrajtunes/sift/actions/workflows/tests.yml)
+
 Paste a GitHub repo, ask it anything, and see the exact lines that answer it.
+
+**Live:** https://sift-swart-psi.vercel.app
+
+> The API runs on a free tier and sleeps when idle. The first request after a while can take about 50 seconds.
 
 Sift indexes a repo, searches it with keyword and vector search together, and runs an agent that opens files and follows references until it can answer. Every claim in the answer cites the lines it came from. The repo shows up as a metro map, and you can watch the agent ride it while it works.
 
@@ -40,7 +46,9 @@ python manage.py migrate
 python manage.py runserver
 ```
 
-`backend/.env` needs `GOOGLE_API_KEY`, `GROQ_API_KEY` and `DATABASE_URL` (Postgres with pgvector).
+`backend/.env` needs `GOOGLE_API_KEY`, `GROQ_API_KEY`, `DATABASE_URL` (Postgres with pgvector) and `DJANGO_DEBUG=1` for local work.
+
+Run the tests with `python manage.py test`.
 
 Frontend:
 

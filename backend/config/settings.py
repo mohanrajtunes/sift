@@ -5,8 +5,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from pathlib import Path
-
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -15,12 +13,16 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY') or 'django-insecure-x2lonk97&x&@)bo#*_fs7_vcac)$y51k0u+mnqauhqlp7*2^zu'
+# Set DJANGO_SECRET_KEY on the server. The fallback is for local development only.
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY') or 'dev-only-key-do-not-use-in-production'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('DJANGO_DEBUG', '1') == '1'
+# Off unless DJANGO_DEBUG=1 is set (put it in backend/.env for local work).
+DEBUG = os.environ.get('DJANGO_DEBUG', '0') == '1'
 
-ALLOWED_HOSTS = [h for h in os.environ.get('ALLOWED_HOSTS', '').split(',') if h] or (['*'] if DEBUG else [])
+# Render sets RENDER_EXTERNAL_HOSTNAME automatically, so production works even if ALLOWED_HOSTS is not set.
+ALLOWED_HOSTS = [h for h in os.environ.get('ALLOWED_HOSTS', '').split(',') if h] or (
+    ['*'] if DEBUG else [h for h in [os.environ.get('RENDER_EXTERNAL_HOSTNAME'), 'localhost', '127.0.0.1'] if h])
 
 
 # Application definition
