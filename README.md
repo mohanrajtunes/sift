@@ -8,6 +8,8 @@ Paste a GitHub repo, ask it anything, and see the exact lines that answer it.
 
 > The API runs on a free tier and sleeps when idle. The first request after a while can take about 50 seconds.
 
+![Sift answering a question about a repo, with the metro map and cited lines](repo-page.png)
+
 Sift indexes a repo, searches it with keyword and vector search together, and runs an agent that opens files and follows references until it can answer. Every claim in the answer cites the lines it came from. The repo shows up as a metro map, and you can watch the agent ride it while it works.
 
 ## How well it works
@@ -68,3 +70,7 @@ Public repos only, up to 50 MB and 1,500 files. The public demo allows 30 questi
 
 - **Backend (Render):** root directory `backend`, build `pip install -r requirements.txt && python manage.py migrate`, start `gunicorn config.wsgi`. `gunicorn.conf.py` sets threaded workers so live answers can stream. Env: `DATABASE_URL`, `GOOGLE_API_KEY`, `GROQ_API_KEY`, `DJANGO_SECRET_KEY`, `DJANGO_DEBUG=0`, `ALLOWED_HOSTS=<your-app>.onrender.com`, `CORS_ALLOWED_ORIGINS=https://<your-site>.vercel.app`.
 - **Frontend (Vercel):** root directory `frontend`, env `VITE_API_URL=https://<your-app>.onrender.com/api`. `vercel.json` sends every path to the app so page links work.
+
+## License
+
+MIT
